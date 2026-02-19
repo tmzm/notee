@@ -73,6 +73,29 @@ const chatPrompt = ChatPromptTemplate.fromMessages([
   new MessagesPlaceholder("agent_scratchpad"),
 ]);
 
+function normalizeSourceUrl(url: string): string | null {
+  // already correct
+  if (url.startsWith("/uploads")) {
+    return url;
+  }
+
+  // full URL containing /uploads
+  if (url.startsWith("http")) {
+    try {
+      const parsed = new URL(url);
+      const uploadsIndex = parsed.pathname.indexOf("/uploads");
+
+      if (uploadsIndex !== -1) {
+        return parsed.pathname.slice(uploadsIndex);
+      }
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+}
+
 export async function createRetrievalTool(chatId: number, sources: any[]) {
   const client = createClient(getRedisConfig());
   await client.connect();
@@ -100,7 +123,11 @@ export async function createRetrievalTool(chatId: number, sources: any[]) {
     const docs = [];
     for (const source of sources) {
       if (!source.url) continue;
-      const filePath = path.join(process.cwd(), "public", source.url);
+    
+      const normalizedUrl = normalizeSourceUrl(source.url);
+      if (!normalizedUrl) continue;
+    
+      const filePath = path.join(process.cwd(), "public", normalizedUrl);
       const loaded = await new PDFLoader(filePath).load();
       docs.push(...loaded);
     }
