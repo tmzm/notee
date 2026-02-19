@@ -35,15 +35,7 @@ const config = {
       path: "/chats/:id/messages/stream",
       handler: "api::chat.chat.postMessageStream",
       config: {
-        auth: { scope: ["api::chat.chat.postMessage"] },
-      },
-    },
-    {
-      method: "POST",
-      path: "/chats/:id/messages",
-      handler: "api::chat.chat.postMessage",
-      config: {
-        auth: { scope: ["api::chat.chat.postMessage"] },
+        auth: { scope: ["api::chat.chat.postMessageStream"] },
       },
     },
   ],

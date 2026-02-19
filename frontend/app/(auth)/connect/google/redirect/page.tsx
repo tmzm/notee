@@ -4,6 +4,8 @@ import { useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ACCESS_TOKEN_COOKIE_NAME, setCookie } from '@/lib/cookies'
 import { toast } from 'sonner'
+import { useMutation } from '@tanstack/react-query'
+import { api } from '@/lib/api'
 
 /**
  * Strapi redirects here after Google OAuth with jwt (or error) in the URL.
@@ -13,26 +15,23 @@ export default function GoogleRedirectPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  useEffect(() => {
-    const jwt = searchParams.get('jwt') ?? searchParams.get('access_token')
-    const error = searchParams.get('error')
-
-    if (error) {
-      toast.error(error === 'access_denied' ? 'Google sign-in was cancelled.' : 'Google sign-in failed.')
-      router.replace('/login')
-      return
-    }
-
-    if (jwt) {
-      setCookie(ACCESS_TOKEN_COOKIE_NAME, jwt)
+  const mutation = useMutation({
+    mutationFn: () =>
+      api<{ jwt: string }>(`/auth/google/callback?${searchParams.toString()}`),
+    onSuccess: data => {
+      setCookie(ACCESS_TOKEN_COOKIE_NAME, data.jwt)
       toast.success('Signed in with Google.')
-      router.replace('/chats')
-      return
+      router.push('/chats')
+    },
+    onError: error => {
+      toast.error('Failed to sign in with Google.')
+      router.push('/login')
     }
+  })
 
-    toast.error('No token received from Google sign-in.')
-    router.replace('/login')
-  }, [router, searchParams])
+  useEffect(() => {
+    mutation.mutate()
+  }, [])
 
   return (
     <div className="flex min-h-[40vh] items-center justify-center">
