@@ -16,12 +16,32 @@ import {
 import path from "path";
 import { TavilySearch } from "@langchain/tavily";
 
+const getRedisConfig = () => {
+  switch (process.env.REDIS_TYPE) {
+    case "url":
+      return {
+        url: process.env.REDIS_URL!,
+      };
+    case "socket":
+      return {
+        username: process.env.REDIS_USERNAME!,
+        password: process.env.REDIS_PASSWORD!,
+        socket: {
+          host: process.env.REDIS_HOST!,
+          port: parseInt(process.env.REDIS_PORT!),
+        },
+      };
+    default:
+      throw new Error("REDIS_TYPE is not set. Must be 'url' or 'socket'");
+  }
+};
+
 export function getChatHistory(chatId: number) {
   return new RedisChatMessageHistory({
     sessionId: `chat:${chatId}`,
     sessionTTL: 60 * 60 * 24 * 7,
     config: {
-      url: process.env.REDIS_URL!,
+      ...getRedisConfig(),
     },
   });
 }
@@ -54,7 +74,7 @@ const chatPrompt = ChatPromptTemplate.fromMessages([
 ]);
 
 export async function createRetrievalTool(chatId: number, sources: any[]) {
-  const client = createClient({ url: process.env.REDIS_URL! });
+  const client = createClient(getRedisConfig());
   await client.connect();
 
   const embeddings = new OpenAIEmbeddings({
