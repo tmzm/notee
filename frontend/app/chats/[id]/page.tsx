@@ -262,7 +262,7 @@ export default function SingleChatPage() {
 
       <SidebarInset className="h-[calc(100vh-10rem)] border rounded-xl overflow-hidden">
         <div className="flex h-12 shrink-0 items-center gap-2 border-b border-border bg-background px-3">
-          <SidebarTrigger className="md:flex hidden" />
+          <SidebarTrigger />
           <Button variant="ghost" size="icon-sm" asChild>
             <Link href="/chats" aria-label="Back to chats">
               <ChevronLeft className="size-4" />
