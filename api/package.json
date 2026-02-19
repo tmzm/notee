@@ -15,16 +15,22 @@
     "upgrade:dry": "npx @strapi/upgrade latest --dry"
   },
   "dependencies": {
+    "@langchain/classic": "^1.0.18",
+    "@langchain/community": "^1.1.16",
     "@langchain/core": "^0.3.28",
     "@langchain/openai": "^0.3.14",
     "@langchain/redis": "^1.1.0",
+    "@langchain/tavily": "^1.2.0",
+    "@langchain/textsplitters": "^1.0.1",
     "@strapi/plugin-cloud": "5.36.0",
     "@strapi/plugin-users-permissions": "5.36.0",
     "@strapi/strapi": "5.36.0",
     "mysql2": "3.9.8",
+    "pdf-parse": "^1.1.4",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "react-router-dom": "^6.0.0",
+    "redis": "^5.11.0",
     "styled-components": "^6.0.0"
   },
   "devDependencies": {

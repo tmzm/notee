@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -74,7 +74,18 @@ async function streamChatMessage({
 
     for (const chunk of chunks) {
       if (!chunk.startsWith('data: ')) continue
-      onEvent(JSON.parse(chunk.slice(6)))
+      try {
+        const parsed = JSON.parse(chunk.slice(6))
+        // If the server sends {"error": "..."} as a message, treat as error event
+        if (parsed && typeof parsed === 'object' && parsed.error) {
+          onEvent({ error: parsed.error })
+        } else {
+          onEvent(parsed)
+        }
+      } catch (err) {
+        // If parsing fails, optionally ignore or handle error
+        // You may also choose to call onEvent({ error: "Malformed chunk" }) here
+      }
     }
   }
 }
@@ -110,6 +121,13 @@ export default function SingleChatPage() {
     },
     enabled: Number.isInteger(id) && !Number.isNaN(id)
   })
+
+  useEffect(() => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [messagesData])
+
   const messages = messagesData ?? []
 
   const removeSourceMutation = useMutation({

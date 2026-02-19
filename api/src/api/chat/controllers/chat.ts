@@ -4,11 +4,7 @@
 
 import { factories } from "@strapi/strapi";
 import { PassThrough } from "stream";
-import {
-  getConversation,
-  sendMessage,
-  sendMessageStream,
-} from "../services/conversation";
+import { getConversation, sendMessageStream } from "../services/conversation";
 
 async function requireUser(ctx: any) {
   const user = ctx.state.user;
@@ -147,30 +143,6 @@ export default factories.createCoreController(
       return { data: await getConversation(chatId) };
     },
 
-    async postMessage(ctx) {
-      const user = await requireUser(ctx);
-      const chatId = Number(ctx.params.id);
-
-      const chat = await findUserChat(strapi, chatId, user.id, ["sources"]);
-
-      const content = (
-        ctx.request.body?.content ??
-        ctx.request.body?.message ??
-        ""
-      ).trim();
-
-      if (!content) ctx.throw(400, "Message content is required");
-
-      const reply = await sendMessage(
-        strapi,
-        chatId,
-        content,
-        (chat as any).sources ?? [],
-      );
-
-      return { data: { role: "assistant", content: reply } };
-    },
-
     async postMessageStream(ctx) {
       const user = await requireUser(ctx);
       const chatId = Number(ctx.params.id);
@@ -198,7 +170,6 @@ export default factories.createCoreController(
       (async () => {
         try {
           for await (const chunk of sendMessageStream(
-            strapi,
             chatId,
             content,
             (chat as any).sources ?? [],
