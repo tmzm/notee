@@ -31,8 +31,8 @@ import { toast } from 'sonner'
 
 export default function Page() {
   const router = useRouter()
-  const form = useForm({
-    resolver: zodResolver(loginSchema)
+  const form = useForm<z.infer<typeof loginSchema>>({
+    resolver: zodResolver(loginSchema as any)
   })
 
   const loginMutation = useMutation({

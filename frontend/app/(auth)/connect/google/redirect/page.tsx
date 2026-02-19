@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { ACCESS_TOKEN_COOKIE_NAME, setCookie } from '@/lib/cookies'
 import { toast } from 'sonner'
 import { useMutation } from '@tanstack/react-query'
@@ -13,11 +13,13 @@ import { api } from '@/lib/api'
  */
 export default function GoogleRedirectPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
 
   const mutation = useMutation({
-    mutationFn: () =>
-      api<{ jwt: string }>(`/auth/google/callback?${searchParams.toString()}`),
+    mutationFn: () => {
+      const url = new URL(window.location.href)
+      const searchParams = url.searchParams.toString()
+      return api<{ jwt: string }>(`/auth/google/callback?${searchParams}`)
+    },
     onSuccess: data => {
       setCookie(ACCESS_TOKEN_COOKIE_NAME, data.jwt)
       toast.success('Signed in with Google.')

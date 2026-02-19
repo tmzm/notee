@@ -45,7 +45,7 @@ export function ChatDialog({
 }: ChatDialogProps) {
   const queryClient = useQueryClient()
   const form = useForm<z.infer<typeof chatSchema>>({
-    resolver: zodResolver(chatSchema),
+    resolver: zodResolver(chatSchema as any),
     defaultValues: { title: '' }
   })
 
