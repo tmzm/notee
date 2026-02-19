@@ -24,6 +24,7 @@ import {
   REFRESH_TOKEN_COOKIE_NAME,
   removeCookie
 } from '@/lib/cookies'
+import Link from 'next/link'
 
 export default function DashboardLayout({
   children
@@ -123,7 +124,21 @@ export default function DashboardLayout({
           </DropdownMenu>
         </div>
       </header>
-      <main className="h-[calc(100vh-3.5rem)] p-4">{children}</main>
+      <main className="h-[calc(100vh-8rem)] p-4">{children}</main>
+      <footer className="sticky bottom-0 z-50 bg-background h-14 border-t border-border/40 py-8">
+        <div className="container px-4 text-center text-sm text-muted-foreground">
+          Notee — your AI personal agent for notes and ideas by{' '}
+          <Link
+            href="https://tareq-mozayek-portfolio.netlify.app"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-foreground"
+          >
+            Tareq Al-Mozayek
+          </Link>{' '}
+          &copy; {new Date().getFullYear()}
+        </div>
+      </footer>
 
       <ConfirmDialog
         open={logoutConfirmOpen}

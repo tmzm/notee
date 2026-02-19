@@ -202,7 +202,7 @@ export default function SingleChatPage() {
 
   return (
     <SidebarProvider className="min-h-auto!">
-      <Sidebar className="pt-14">
+      <Sidebar className="pt-14 pb-18">
         <SidebarContent>
           <SidebarGroup>
             <SidebarGroupLabel>Sources</SidebarGroupLabel>
@@ -216,7 +216,7 @@ export default function SingleChatPage() {
               <FileUp className="size-4" />
               Upload PDFs
             </Button>
-            <p className="px-2 text-xs text-muted-foreground">
+            <p className="mt-2 px-2 text-xs text-muted-foreground">
               Only 3 PDFs per chat allowed due to free limits.
             </p>
           </SidebarGroup>
@@ -260,7 +260,7 @@ export default function SingleChatPage() {
         </SidebarContent>
       </Sidebar>
 
-      <SidebarInset className="h-[calc(100vh-6rem)] border rounded-xl overflow-hidden">
+      <SidebarInset className="h-[calc(100vh-10rem)] border rounded-xl overflow-hidden">
         <div className="flex h-12 shrink-0 items-center gap-2 border-b border-border bg-background px-3">
           <SidebarTrigger className="md:flex hidden" />
           <Button variant="ghost" size="icon-sm" asChild>
