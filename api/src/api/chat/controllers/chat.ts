@@ -84,10 +84,32 @@ export default factories.createCoreController(
       const user = await requireUser(ctx);
       const id = Number(ctx.params.id);
 
-      await findUserChat(strapi, id, user.id);
+      const chat = await findUserChat(strapi, id, user.id, ["sources"]);
+      const sources = Array.isArray((chat as any).sources)
+        ? (chat as any).sources
+        : [];
+      const MAX_SOURCES_PER_CHAT = 3;
+      if (sources.length >= MAX_SOURCES_PER_CHAT) {
+        return ctx.badRequest(
+          `Only ${MAX_SOURCES_PER_CHAT} PDFs per chat allowed due to free limits.`,
+        );
+      }
 
       const files = ctx.request.files?.files;
-      if (!files) ctx.throw(400, "No files provided");
+      if (!files) return ctx.badRequest("No files provided");
+
+      const fileList = Array.isArray(files) ? files : [files];
+      const pdfs = fileList.filter(
+        (f) =>
+          f.mimetype === "application/pdf" ||
+          f.originalFilename?.toLowerCase().endsWith(".pdf"),
+      );
+      if (pdfs.length !== fileList.length) {
+        return ctx.badRequest("Only PDF files are allowed.");
+      }
+
+      const slotsLeft = MAX_SOURCES_PER_CHAT - sources.length;
+      const toUpload = pdfs.slice(0, slotsLeft);
 
       const uploadService = strapi.plugin("upload").service("upload");
 
@@ -97,7 +119,7 @@ export default factories.createCoreController(
           refId: id,
           field: "sources",
         },
-        files: Array.isArray(files) ? files : [files],
+        files: toUpload,
       });
 
       return strapi.entityService.findOne("api::chat.chat", id, {

@@ -211,10 +211,14 @@ export default function SingleChatPage() {
               size="sm"
               className="w-full justify-start gap-2"
               onClick={() => setUploadDialogOpen(true)}
+              disabled={sources.length >= 3}
             >
               <FileUp className="size-4" />
-              Upload files
+              Upload PDFs
             </Button>
+            <p className="px-2 text-xs text-muted-foreground">
+              Only 3 PDFs per chat allowed due to free limits.
+            </p>
           </SidebarGroup>
           <SidebarGroup>
             <SidebarGroupLabel>Uploaded</SidebarGroupLabel>
@@ -365,6 +369,8 @@ export default function SingleChatPage() {
         open={uploadDialogOpen}
         onOpenChange={setUploadDialogOpen}
         chatId={id}
+        currentSourceCount={sources.length}
+        maxSources={3}
       />
 
       <ConfirmDialog

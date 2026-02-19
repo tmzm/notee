@@ -15,32 +15,51 @@ import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { FileUp } from 'lucide-react'
 
+const MAX_PDFS_PER_CHAT = 3
+const PDF_ACCEPT = '.pdf,application/pdf'
+
 type UploadSourceDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   chatId: number
+  currentSourceCount?: number
+  maxSources?: number
 }
 
 export function UploadSourceDialog({
   open,
   onOpenChange,
-  chatId
+  chatId,
+  currentSourceCount = 0,
+  maxSources = MAX_PDFS_PER_CHAT
 }: UploadSourceDialogProps) {
   const queryClient = useQueryClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
 
+  const slotsLeft = Math.max(0, maxSources - currentSourceCount)
+  const atLimit = currentSourceCount >= maxSources
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
-    if (files?.length) {
-      setSelectedFiles(Array.from(files))
-    }
+    if (!files?.length) return
+    const pdfs = Array.from(files).filter(
+      f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')
+    )
+    const toAdd = pdfs.slice(0, slotsLeft - selectedFiles.length)
+    setSelectedFiles(prev => [...prev, ...toAdd].slice(0, slotsLeft))
+    e.target.value = ''
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (selectedFiles.length === 0) return
+    if (selectedFiles.length === 0 || atLimit) return
+    const totalAfter = currentSourceCount + selectedFiles.length
+    if (totalAfter > maxSources) {
+      toast.error(`Maximum ${maxSources} PDFs per chat allowed.`)
+      return
+    }
     setUploading(true)
     try {
       const form = new FormData()
@@ -74,12 +93,15 @@ export function UploadSourceDialog({
         <DialogHeader>
           <DialogTitle>Upload sources</DialogTitle>
         </DialogHeader>
+        <p className="text-xs text-muted-foreground">
+          Only {maxSources} PDFs per chat allowed due to free limits.
+        </p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             ref={fileInputRef}
             type="file"
             multiple
-            accept=".txt,.md,.pdf,image/*"
+            accept={PDF_ACCEPT}
             className="hidden"
             onChange={handleFileChange}
           />
@@ -89,9 +111,10 @@ export function UploadSourceDialog({
               variant="outline"
               className="w-full justify-start gap-2"
               onClick={() => fileInputRef.current?.click()}
+              disabled={atLimit}
             >
               <FileUp className="size-4" />
-              Choose files
+              Choose PDFs {atLimit ? `(max ${maxSources})` : `(${slotsLeft} slot${slotsLeft !== 1 ? 's' : ''} left)`}
             </Button>
             {selectedFiles.length > 0 && (
               <ul className="max-h-32 overflow-y-auto rounded-md border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
@@ -114,7 +137,7 @@ export function UploadSourceDialog({
             <Button
               type="submit"
               loading={uploading}
-              disabled={selectedFiles.length === 0}
+              disabled={selectedFiles.length === 0 || atLimit}
             >
               Upload
             </Button>

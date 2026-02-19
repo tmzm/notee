@@ -63,7 +63,9 @@ export default function ChatsPage() {
   const hasNext = page < totalPages
   const hasPrev = page > 1
 
-  const openCreateDialog = () => setDialogOpen(true)
+  const hasReachedChatLimit = !isLoading && total >= 1
+  const canAddChat = !isLoading && total < 1
+  const openCreateDialog = () => canAddChat && setDialogOpen(true)
 
   return (
     <div className="space-y-8">
@@ -76,11 +78,19 @@ export default function ChatsPage() {
             where you left off.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Button onClick={openCreateDialog}>
+        <CardContent className="space-y-2">
+          <Button
+            onClick={openCreateDialog}
+            disabled={isLoading || hasReachedChatLimit}
+          >
             <Plus className="size-4" />
             New chat
           </Button>
+          {hasReachedChatLimit && (
+            <p className="text-xs text-muted-foreground">
+              Only one chat allowed due to free limits.
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -101,9 +111,15 @@ export default function ChatsPage() {
               variant="outline"
               className="mt-4"
               onClick={openCreateDialog}
+              disabled={isLoading || hasReachedChatLimit}
             >
               New chat
             </Button>
+            {hasReachedChatLimit && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Only one chat allowed due to free limits.
+              </p>
+            )}
           </Card>
         ) : (
           <>
@@ -160,21 +176,24 @@ export default function ChatsPage() {
                   </CardContent>
                 </Card>
               ))}
-              {/* New chat card */}
-              <button
-                type="button"
-                onClick={openCreateDialog}
-                className="text-left"
-              >
-                <Card className="flex h-full py-2 items-center justify-center border-dashed transition-colors hover:bg-muted/50 hover:border-primary/30">
-                  <CardContent className="flex flex-col items-center gap-2 py-6">
-                    <Plus className="size-8 text-muted-foreground" />
-                    <span className="text-sm font-medium text-muted-foreground">
-                      New chat
-                    </span>
-                  </CardContent>
-                </Card>
-              </button>
+              {/* New chat card - hidden when at limit */}
+              {!hasReachedChatLimit && (
+                <button
+                  type="button"
+                  onClick={openCreateDialog}
+                  className="text-left"
+                  disabled={isLoading}
+                >
+                  <Card className="flex h-full py-2 items-center justify-center border-dashed transition-colors hover:bg-muted/50 hover:border-primary/30">
+                    <CardContent className="flex flex-col items-center gap-2 py-6">
+                      <Plus className="size-8 text-muted-foreground" />
+                      <span className="text-sm font-medium text-muted-foreground">
+                        New chat
+                      </span>
+                    </CardContent>
+                  </Card>
+                </button>
+              )}
             </div>
 
             {/* Pagination */}
