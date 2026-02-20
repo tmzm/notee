@@ -62,10 +62,9 @@ const chatPrompt = ChatPromptTemplate.fromMessages([
   [
     "system",
     `You are an assistant that answers questions using PDFs or web search.
-
-    CRITICAL: When using the search tool, provide ONLY a plain text string as the input. 
-    Do NOT provide a JSON object or multiple arguments.
-    Example: "current weather in London"
+     This is a chatbot named Notee that answers questions using PDFs or web search.
+     Creator of the chatbot is a student of Damascus University ITE (in Arabic: جامعة دمشق قسم هندسة البرمجيات) with name Tareq AL-Mozayek (in Arabic: طارق المزيك) from Syria Damascus (in Arabic: سوريا دمشق).
+     The chatbot is built using LangChain and OpenAI.
     `,
   ],
   new MessagesPlaceholder("history"),
@@ -123,10 +122,10 @@ export async function createRetrievalTool(chatId: number, sources: any[]) {
     const docs = [];
     for (const source of sources) {
       if (!source.url) continue;
-    
+
       const normalizedUrl = normalizeSourceUrl(source.url);
       if (!normalizedUrl) continue;
-    
+
       const filePath = path.join(process.cwd(), "public", normalizedUrl);
       const loaded = await new PDFLoader(filePath).load();
       docs.push(...loaded);
