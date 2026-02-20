@@ -38,6 +38,7 @@ export default function Page() {
     mutationFn: async (data: z.infer<typeof requestPasswordEmailSchema>) => {
       return await api(`/auth/forgot-password`, {
         method: 'POST',
+        skipAuthRedirect: true,
         body: data
       })
     },

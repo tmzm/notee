@@ -49,6 +49,7 @@ export default function Page() {
     mutationFn: (data: z.infer<typeof loginSchema>) =>
       api('/auth/local', {
         method: 'POST',
+        skipAuthRedirect: true,
         withCredentials: true,
         body: {
           identifier: data.email,

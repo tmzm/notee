@@ -46,6 +46,7 @@ export default function Page() {
 
       return await api(`/auth/reset-password`, {
         method: 'POST',
+        skipAuthRedirect: true,
         body: {
           code: code,
           password: data.password,

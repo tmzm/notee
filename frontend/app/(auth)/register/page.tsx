@@ -39,6 +39,7 @@ export default function Page() {
     mutationFn: (data: z.infer<typeof registerSchema>) =>
       api('/auth/local/register', {
         method: 'POST',
+        skipAuthRedirect: true,
         body: data
       }),
     onSuccess: data => {
