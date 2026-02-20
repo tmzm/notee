@@ -25,12 +25,22 @@ import { useMutation } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { EyeIcon, EyeOffIcon } from 'lucide-react'
 import { ACCESS_TOKEN_COOKIE_NAME, setCookie } from '@/lib/cookies'
 import { getGoogleConnectUrl } from '@/lib/auth'
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput
+} from '@/components/ui/input-group'
 import { toast } from 'sonner'
+import { useState } from 'react'
 
 export default function Page() {
   const router = useRouter()
+
+  const [showPassword, setShowPassword] = useState(false)
+  
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema as any)
   })
@@ -98,7 +108,22 @@ export default function Page() {
                 <FormItem>
                   <FormLabel className="required">Password</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="Password" {...field} />
+                    <InputGroup className="h-9 rounded-md">
+                      <InputGroupInput
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="Password"
+                        {...field}
+                      />
+                      <InputGroupAddon align="inline-end">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? <EyeIcon /> : <EyeOffIcon />}
+                        </Button>
+                      </InputGroupAddon>
+                    </InputGroup>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
