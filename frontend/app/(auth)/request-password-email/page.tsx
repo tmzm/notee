@@ -45,7 +45,7 @@ export default function Page() {
     onSuccess: () => {
       toast.success('You will receive a password reset email!')
 
-      router.push('/reset-password')
+      router.push('/login')
     }
   })
 
