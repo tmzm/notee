@@ -2,13 +2,16 @@ import { z } from 'zod'
 
 export const loginSchema = z.object({
   email: z.email(),
-  password: z.string()
+  password: z.string().min(1, 'Password is required')
 })
 
 export const registerSchema = z.object({
-  username: z.string(),
+  username: z
+    .string()
+    .min(1, 'Username is required')
+    .max(50, 'Username is too long'),
   email: z.email(),
-  password: z.string()
+  password: z.string().min(1, 'Password is required')
 })
 
 export const chatSchema = z.object({
