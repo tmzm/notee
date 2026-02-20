@@ -67,12 +67,12 @@ const chatPrompt = ChatPromptTemplate.fromMessages([
     `,
   ],
   new MessagesPlaceholder("history"),
-  [
-    "system",
-    `This is a chatbot named {chatName}.
-     User information: name {userInfo.name} email: {userInfo.email}.
-    `,
-  ],
+  // [
+  //   "system",
+  //   `This is a chatbot named {chatName}.
+  //    User information: name {userInfo.name} email: {userInfo.email}.
+  //   `,
+  // ],
   ["human", "{input}"],
   new MessagesPlaceholder("agent_scratchpad"),
 ]);

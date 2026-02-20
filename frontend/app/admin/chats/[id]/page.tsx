@@ -304,7 +304,7 @@ export default function SingleChatPage() {
             <div className="flex items-center justify-center py-12 text-muted-foreground">
               <span className="text-sm">Loading messages…</span>
             </div>
-          ) : messages.length === 0 ? (
+          ) : messages.length === 0 && !streamMutation.isPending ? (
             <div className="flex flex-col items-center justify-center gap-2 py-16 text-center text-muted-foreground">
               <MessageSquare className="size-12 opacity-30" />
               <p className="text-sm">No messages yet. Ask a question below.</p>
