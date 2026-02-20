@@ -202,7 +202,7 @@ export async function createConversationRunnable(
     tools,
     // This helps handle the 400 error if the model produces a bad tool call
     handleParsingErrors: true,
-    maxIterations: 2,
+    maxIterations: 6,
   });
 
   return new RunnableWithMessageHistory({
