@@ -51,6 +51,7 @@ export function getModel(streaming = false) {
     temperature: 0, // Tools work best at 0
     streaming,
     openAIApiKey: process.env.OPENAI_API_KEY!,
+    maxTokens: 2048,
     configuration: {
       baseURL: process.env.OPENAI_API_URL || "https://openrouter.ai/api/v1",
     },
@@ -165,7 +166,7 @@ export async function createRetrievalTool(chatId: number, sources: any[]) {
   }
 
   // 2. Return the retriever
-  const retriever = vectorStore.asRetriever({ k: 5 }); // Increase k to give the model more context
+  const retriever = vectorStore.asRetriever({ k: 3 }); // Increase k to give the model more context
 
   return createRetrieverTool(retriever, {
     name: "retrieve_documents",
@@ -201,7 +202,7 @@ export async function createConversationRunnable(
     tools,
     // This helps handle the 400 error if the model produces a bad tool call
     handleParsingErrors: true,
-    maxIterations: 3,
+    maxIterations: 2,
   });
 
   return new RunnableWithMessageHistory({
