@@ -29,8 +29,9 @@ import {
   InputGroupAddon,
   InputGroupInput
 } from '@/components/ui/input-group'
-import { ArrowLeftIcon, EyeIcon, EyeOffIcon, Link } from 'lucide-react'
+import { ArrowLeftIcon, EyeIcon, EyeOffIcon } from 'lucide-react'
 import { useState } from 'react'
+import Link from 'next/link'
 
 export default function Page() {
   const router = useRouter()
