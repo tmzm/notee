@@ -356,7 +356,9 @@ export default function SingleChatPage() {
                   <li className="flex justify-start">
                     {streamingContent ? (
                       <div className="max-w-[85%] rounded-2xl bg-muted px-4 py-2.5 text-sm text-foreground whitespace-pre-wrap">
-                        <Markdown>{streamingContent}</Markdown>
+                        <Markdown remarkPlugins={[remarkGfm]}>
+                          {streamingContent}
+                        </Markdown>
                       </div>
                     ) : (
                       <Skeleton className="w-5 h-5 rounded-full" />
