@@ -16,7 +16,7 @@ import { Avatar, AvatarFallback } from './ui/avatar'
 import { getInitials } from '@/lib/utils'
 import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group'
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { Monitor, Moon, Sun, LogOut } from 'lucide-react'
+import { Monitor, Moon, Sun, LogOut, User as UserIcon } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { api } from '@/lib/api'
 import {
@@ -79,6 +79,13 @@ export default function DashboardLayout({
                     {userData?.email}
                   </div>
                 </div>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/admin/profile">
+                  <UserIcon className="size-4" />
+                  Profile
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <ToggleGroup
