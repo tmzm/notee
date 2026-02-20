@@ -21,3 +21,23 @@ export const profileSchema = z.object({
     .min(1, 'Username is required')
     .max(50, 'Username is too long')
 })
+
+export const resetPasswordSchema = z
+  .object({
+    password: z
+      .string()
+      .min(8, 'Password is required')
+      .max(50, 'Password is too long'),
+    confirmPassword: z
+      .string()
+      .min(8, 'Confirm password is required')
+      .max(50, 'Confirm password is too long')
+  })
+  .refine(data => data.password === data.confirmPassword, {
+    path: ['confirmPassword'],
+    message: 'Confirm password does not match'
+  })
+
+export const requestPasswordEmailSchema = z.object({
+  email: z.email()
+})

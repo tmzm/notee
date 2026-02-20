@@ -28,9 +28,19 @@ import { useRouter } from 'next/navigation'
 import { ACCESS_TOKEN_COOKIE_NAME, setCookie } from '@/lib/cookies'
 import { getGoogleConnectUrl } from '@/lib/auth'
 import { toast } from 'sonner'
+import { EyeIcon, EyeOffIcon } from 'lucide-react'
+import { useState } from 'react'
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput
+} from '@/components/ui/input-group'
 
 export default function Page() {
   const router = useRouter()
+
+  const [showPassword, setShowPassword] = useState(false)
+
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema as any)
   })
@@ -86,12 +96,32 @@ export default function Page() {
                 <FormItem>
                   <FormLabel className="required">Password</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="Password" {...field} />
+                    <InputGroup className="h-9 rounded-md">
+                      <InputGroupInput
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="Password"
+                        {...field}
+                      />
+                      <InputGroupAddon align="inline-end">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? <EyeIcon /> : <EyeOffIcon />}
+                        </Button>
+                      </InputGroupAddon>
+                    </InputGroup>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            <div className="text-sm text-muted-foreground">
+              Forgot your password?{' '}
+              <Link href="/request-password-email">Request password email</Link>
+            </div>
 
             <div className="text-sm text-muted-foreground">
               Don't have an account? <Link href="/register">Register</Link>
