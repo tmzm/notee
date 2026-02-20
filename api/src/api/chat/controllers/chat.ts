@@ -45,7 +45,7 @@ export default factories.createCoreController(
 
     async findOne(ctx) {
       const user = await requireUser(ctx);
-      return findUserChat(strapi, Number(ctx.params.id), user.id, ["sources"]);
+      return findUserChat(strapi, ctx.params.id, user.id, ["sources"]);
     },
 
     async create(ctx) {
@@ -193,6 +193,11 @@ export default factories.createCoreController(
         try {
           for await (const chunk of sendMessageStream(
             chatId,
+            chat.title,
+            {
+              name: user.username,
+              email: user.email,
+            },
             content,
             (chat as any).sources ?? [],
           )) {

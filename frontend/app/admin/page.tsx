@@ -14,10 +14,9 @@ import { Button } from '@/components/ui/button'
 import {
   MessageSquare,
   Plus,
-  ChevronLeft,
-  ChevronRight,
   MoreHorizontal,
-  Trash2
+  Trash2,
+  Pencil
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -31,17 +30,15 @@ import { api } from '@/lib/api'
 import { toast } from 'sonner'
 import type { Chat } from '@/types'
 
-const PAGE_SIZE = 9
-
 export default function ChatsPage() {
   const queryClient = useQueryClient()
-  const [page, setPage] = useState(1)
+  const [selectedChat, setSelectedChat] = useState<Chat | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<Chat | null>(null)
 
   const { data: chats = [], isLoading } = useQuery({
     queryKey: ['chats'],
-    queryFn: () => api('/chats')
+    queryFn: () => api<Chat[]>('/chats')
   })
 
   const deleteChatMutation = useMutation({
@@ -54,18 +51,25 @@ export default function ChatsPage() {
     }
   })
 
-  const total = Array.isArray(chats) ? chats.length : 0
-  const start = (page - 1) * PAGE_SIZE
-  const paginatedChats = Array.isArray(chats)
-    ? chats.slice(start, start + PAGE_SIZE)
-    : []
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
-  const hasNext = page < totalPages
-  const hasPrev = page > 1
+  const hasReachedChatLimit = !isLoading && chats.length >= 1
+  const canAddChat = !isLoading && chats.length < 1
 
-  const hasReachedChatLimit = !isLoading && total >= 1
-  const canAddChat = !isLoading && total < 1
-  const openCreateDialog = () => canAddChat && setDialogOpen(true)
+  const openCreateDialog = () => {
+    if (canAddChat) {
+      setSelectedChat(null)
+      setDialogOpen(true)
+    }
+  }
+
+  const openEditDialog = (chat: Chat) => {
+    setSelectedChat(chat)
+    setDialogOpen(true)
+  }
+
+  const handleDialogClose = () => {
+    setDialogOpen(false)
+    setSelectedChat(null)
+  }
 
   return (
     <div className="space-y-8">
@@ -103,7 +107,7 @@ export default function ChatsPage() {
               <Card key={i} className="h-[120px] animate-pulse" />
             ))}
           </div>
-        ) : paginatedChats.length === 0 ? (
+        ) : chats.length === 0 ? (
           <Card className="flex min-h-[200px] flex-col items-center justify-center py-12">
             <MessageSquare className="size-12 text-muted-foreground/50" />
             <p className="mt-2 text-sm text-muted-foreground">No chats yet</p>
@@ -124,7 +128,7 @@ export default function ChatsPage() {
         ) : (
           <>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {paginatedChats.map(chat => (
+              {chats.map(chat => (
                 <Card
                   key={chat.id}
                   className="h-full transition-colors hover:bg-muted/50"
@@ -132,7 +136,7 @@ export default function ChatsPage() {
                   <CardContent className="flex h-full flex-col justify-center">
                     <div className="flex items-center gap-3">
                       <Link
-                        href={`/chats/${chat.id}`}
+                        href={`/admin/chats/${chat.id}`}
                         className="flex min-w-0 flex-1 items-center gap-3"
                       >
                         <div className="rounded-lg bg-primary/10 p-2">
@@ -160,6 +164,15 @@ export default function ChatsPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={e => {
+                              e.preventDefault()
+                              openEditDialog(chat)
+                            }}
+                          >
+                            <Pencil className="size-4" />
+                            Edit chat
+                          </DropdownMenuItem>
                           <DropdownMenuItem
                             variant="destructive"
                             onClick={e => {
@@ -195,41 +208,20 @@ export default function ChatsPage() {
                 </button>
               )}
             </div>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="mt-6 flex items-center justify-center gap-2">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  disabled={!hasPrev}
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  aria-label="Previous page"
-                >
-                  <ChevronLeft className="size-4" />
-                </Button>
-                <span className="text-sm text-muted-foreground">
-                  Page {page} of {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  disabled={!hasNext}
-                  onClick={() => setPage(p => p + 1)}
-                  aria-label="Next page"
-                >
-                  <ChevronRight className="size-4" />
-                </Button>
-              </div>
-            )}
           </>
         )}
       </div>
 
       <ChatDialog
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        mode="create"
+        onOpenChange={open => {
+          if (!open) {
+            handleDialogClose()
+          }
+        }}
+        mode={selectedChat ? 'edit' : 'create'}
+        chat={selectedChat}
+        onSuccess={handleDialogClose}
       />
 
       <ConfirmDialog

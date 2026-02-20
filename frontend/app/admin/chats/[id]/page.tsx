@@ -11,12 +11,16 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarInset,
-  SidebarTrigger
+  SidebarTrigger,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuSkeleton
 } from '@/components/ui/sidebar'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import {
   ChevronLeft,
+  Download,
   FileUp,
   Loader2,
   MessageSquare,
@@ -31,8 +35,10 @@ import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 import { UploadSourceDialog } from '@/components/upload-source-dialog'
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import type { Media } from '@/types'
+import type { Chat, Media } from '@/types'
 import Markdown from 'react-markdown'
+import CopyButton from '@/components/copy-button'
+import remarkGfm from 'remark-gfm'
 
 async function streamChatMessage({
   url,
@@ -91,24 +97,25 @@ async function streamChatMessage({
 }
 
 export default function SingleChatPage() {
-  const params = useParams()
+  const { id } = useParams<{ id: string }>()
   const queryClient = useQueryClient()
-  const id = typeof params.id === 'string' ? parseInt(params.id, 10) : NaN
+
   const [messageInput, setMessageInput] = useState('')
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
   const [deleteSourceConfirm, setDeleteSourceConfirm] = useState<{
     sourceId: number
     name: string
   } | null>(null)
-  const [streamingUser, setStreamingUser] = useState<string | null>(null)
   const [streamingContent, setStreamingContent] = useState('')
-  const [isStreaming, setIsStreaming] = useState(false)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
 
-  const { data: chat, isLoading: chatLoading } = useQuery({
+  const {
+    data: chat,
+    isLoading: chatLoading,
+    error
+  } = useQuery({
     queryKey: ['chats', id],
-    queryFn: () => api(`/chats/${id}`),
-    enabled: Number.isInteger(id) && !Number.isNaN(id)
+    queryFn: () => api<Chat>(`/chats/${id}`)
   })
 
   const { data: messagesData, isLoading: messagesLoading } = useQuery({
@@ -119,7 +126,7 @@ export default function SingleChatPage() {
       )
       return Array.isArray(res?.data) ? res.data : []
     },
-    enabled: Number.isInteger(id) && !Number.isNaN(id)
+    enabled: !!id
   })
 
   useEffect(() => {
@@ -142,59 +149,63 @@ export default function SingleChatPage() {
 
   const sources = (chat?.sources ?? []) as Media[]
 
-  const handleSend = useCallback(async () => {
-    if (!messageInput.trim() || isStreaming) return
+  // --- Streaming mutation using useMutation ---
+  const streamMutation = useMutation({
+    mutationFn: async (content: string) => {
+      const token = await getCookie?.(ACCESS_TOKEN_COOKIE_NAME)
+      const url = `${getApiBaseUrl()}/chats/${id}/messages/stream`
 
-    const content = messageInput.trim()
-    const token = await getCookie?.(ACCESS_TOKEN_COOKIE_NAME)
-    const url = `${getApiBaseUrl()}/chats/${id}/messages/stream`
+      return new Promise<void>((resolve, reject) => {
+        streamChatMessage({
+          url,
+          token,
+          content,
+          onEvent: async event => {
+            if (event.error) {
+              toast.error(event.error)
+              reject(new Error(event.error))
+              return
+            }
+            if (event.content) {
+              setStreamingContent(prev => prev + event.content)
+            }
+            if (event.done) {
+              await queryClient.invalidateQueries({
+                queryKey: ['chats', id, 'messages']
+              })
 
-    setStreamingUser(content)
-    setStreamingContent('')
-    setMessageInput('')
-    setIsStreaming(true)
+              messagesContainerRef.current?.scrollIntoView({
+                behavior: 'smooth'
+              })
 
-    try {
-      await streamChatMessage({
-        url,
-        token,
-        content,
-        onEvent: async event => {
-          if (event.error) {
-            toast.error(event.error)
-            throw new Error(event.error)
+              resolve()
+            }
           }
-          if (event.content) {
-            setStreamingContent(prev => prev + event.content)
-          }
-          if (event.done) {
-            await queryClient.invalidateQueries({
-              queryKey: ['chats', id, 'messages']
-            })
-
-            messagesContainerRef.current?.scrollIntoView({ behavior: 'smooth' })
-
-            setStreamingUser(null)
-            setStreamingContent('')
-            setIsStreaming(false)
-          }
-        }
+        }).catch(err => {
+          reject(err)
+        })
       })
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Streaming failed')
-
-      setStreamingUser(null)
+    },
+    onMutate: async () => {
       setStreamingContent('')
-      setIsStreaming(false)
+      setMessageInput('')
+    },
+    onSettled: () => {
+      setStreamingContent('')
     }
-  }, [id, messageInput, isStreaming, queryClient])
+  })
 
-  if (Number.isNaN(id)) {
+  const handleSend = useCallback(() => {
+    if (!messageInput.trim() || streamMutation.isPending) return
+    streamMutation.mutate(messageInput.trim())
+  }, [messageInput, streamMutation])
+
+  if (error) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-16">
-        <p className="text-muted-foreground">Invalid chat.</p>
+        <p className="text-muted-foreground">Error loading chat.</p>
         <Button asChild variant="outline">
-          <Link href="/chats">Back to chats</Link>
+          <Link href="/admin">Back to chats</Link>
         </Button>
       </div>
     )
@@ -222,22 +233,33 @@ export default function SingleChatPage() {
           </SidebarGroup>
           <SidebarGroup>
             <SidebarGroupLabel>Uploaded</SidebarGroupLabel>
-            {sources.length > 0 ? (
-              <ul className="space-y-1">
+            {chatLoading ? (
+              <SidebarMenu>
+                <SidebarMenuSkeleton />
+                <SidebarMenuSkeleton />
+                <SidebarMenuSkeleton />
+              </SidebarMenu>
+            ) : sources.length > 0 ? (
+              <SidebarMenu>
                 {sources.map(s => (
-                  <li
+                  <SidebarMenuItem
                     key={s.id}
-                    className="group flex items-center gap-2 rounded-md px-2 py-1.5 text-xs text-muted-foreground"
+                    className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs text-muted-foreground"
                   >
                     <Paperclip className="size-3 shrink-0" />
                     <span className="min-w-0 flex-1 truncate">
                       {s.name ?? s.url ?? `File ${s.id}`}
                     </span>
+                    <Button variant="ghost" size="icon-xs">
+                      <Link href={s.url || ''} target="_blank">
+                        <Download className="size-3" />
+                      </Link>
+                    </Button>
                     <Button
                       type="button"
                       variant="ghost"
+                      className="text-destructive"
                       size="icon-xs"
-                      className="shrink-0 opacity-0 group-hover:opacity-100"
                       aria-label="Remove source"
                       onClick={() =>
                         setDeleteSourceConfirm({
@@ -248,9 +270,9 @@ export default function SingleChatPage() {
                     >
                       <Trash2 className="size-3" />
                     </Button>
-                  </li>
+                  </SidebarMenuItem>
                 ))}
-              </ul>
+              </SidebarMenu>
             ) : (
               <p className="ps-3 text-xs text-muted-foreground">
                 No files uploaded yet.
@@ -264,7 +286,7 @@ export default function SingleChatPage() {
         <div className="flex h-12 shrink-0 items-center gap-2 border-b border-border bg-background px-3">
           <SidebarTrigger />
           <Button variant="ghost" size="icon-sm" asChild>
-            <Link href="/chats" aria-label="Back to chats">
+            <Link href="/admin" aria-label="Back to chats">
               <ChevronLeft className="size-4" />
             </Link>
           </Button>
@@ -282,7 +304,7 @@ export default function SingleChatPage() {
             <div className="flex items-center justify-center py-12 text-muted-foreground">
               <span className="text-sm">Loading messages…</span>
             </div>
-          ) : messages.length === 0 && !streamingUser ? (
+          ) : messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 py-16 text-center text-muted-foreground">
               <MessageSquare className="size-12 opacity-30" />
               <p className="text-sm">No messages yet. Ask a question below.</p>
@@ -293,8 +315,8 @@ export default function SingleChatPage() {
                 <li
                   key={`s-${i}`}
                   className={cn(
-                    'flex',
-                    msg.role === 'user' ? 'justify-end' : 'justify-start'
+                    'flex flex-col gap-2',
+                    msg.role === 'user' ? 'items-end' : 'items-start'
                   )}
                 >
                   <div
@@ -307,17 +329,24 @@ export default function SingleChatPage() {
                   >
                     {msg.role == 'user' ? (
                       msg.content
+                    ) : msg.content ? (
+                      <Markdown remarkPlugins={[remarkGfm]}>
+                        {msg.content}
+                      </Markdown>
                     ) : (
-                      <Markdown>{msg.content}</Markdown>
+                      <span className="text-muted-foreground italic">
+                        No response from Notee.
+                      </span>
                     )}
                   </div>
+                  <CopyButton size="icon-xs" text={msg.content} />
                 </li>
               ))}
-              {streamingUser != null && (
+              {streamMutation.isPending && (
                 <>
                   <li className="flex justify-end">
                     <div className="flex max-w-[85%] items-center gap-2 rounded-2xl bg-primary px-4 py-2.5 text-sm text-primary-foreground whitespace-pre-wrap">
-                      {streamingUser}
+                      {streamMutation.variables}
                       <Loader2
                         className="size-4 shrink-0 animate-spin"
                         aria-hidden
@@ -325,13 +354,13 @@ export default function SingleChatPage() {
                     </div>
                   </li>
                   <li className="flex justify-start">
-                    <div className="max-w-[85%] rounded-2xl bg-muted px-4 py-2.5 text-sm text-foreground whitespace-pre-wrap">
-                      {streamingContent ? (
+                    {streamingContent ? (
+                      <div className="max-w-[85%] rounded-2xl bg-muted px-4 py-2.5 text-sm text-foreground whitespace-pre-wrap">
                         <Markdown>{streamingContent}</Markdown>
-                      ) : (
-                        <span className="text-muted-foreground">…</span>
-                      )}
-                    </div>
+                      </div>
+                    ) : (
+                      <Skeleton className="w-5 h-5 rounded-full" />
+                    )}
                   </li>
                 </>
               )}
@@ -358,7 +387,7 @@ export default function SingleChatPage() {
             className="shrink-0 self-end"
             onClick={handleSend}
             disabled={!messageInput.trim()}
-            loading={isStreaming}
+            loading={streamMutation.isPending}
           >
             <Send className="size-4" aria-label="Send" />
           </Button>
@@ -368,7 +397,7 @@ export default function SingleChatPage() {
       <UploadSourceDialog
         open={uploadDialogOpen}
         onOpenChange={setUploadDialogOpen}
-        chatId={id}
+        chatId={Number(id)}
         currentSourceCount={sources.length}
         maxSources={3}
       />

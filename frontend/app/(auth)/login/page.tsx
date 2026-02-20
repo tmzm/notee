@@ -50,7 +50,7 @@ export default function Page() {
 
       toast.success('Login successfully!')
 
-      router.push('/chats')
+      router.push('/admin')
     }
   })
 

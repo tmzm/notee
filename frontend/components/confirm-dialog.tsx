@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button'
 export type ConfirmDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
-  title: string
+  title?: string
   description?: string
   confirmLabel?: string
   cancelLabel?: string
@@ -25,8 +25,8 @@ export type ConfirmDialogProps = {
 export function ConfirmDialog({
   open,
   onOpenChange,
-  title,
-  description,
+  title = 'Delete Item',
+  description = 'Are you sure you want to delete this item? This action cannot be undone.',
   confirmLabel = 'Delete',
   cancelLabel = 'Cancel',
   variant = 'destructive',

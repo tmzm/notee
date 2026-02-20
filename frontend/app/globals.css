@@ -143,3 +143,53 @@
 .required::after {
   @apply absolute content-['*'] top-0.5 -end-3 text-destructive;
 }
+
+/* ===== Global Scrollbar Styling ===== */
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #6b7280 transparent;
+}
+
+/* Chrome, Edge, Safari */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: #6b7280;
+  /* neutral gray */
+  border-radius: 999px;
+  border: 3px solid transparent;
+  /* creates padding */
+  background-clip: content-box;
+  transition: background-color 0.2s ease;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: #4b5563;
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+@media (prefers-color-scheme: dark) {
+  * {
+    scrollbar-color: #9ca3af transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: #9ca3af;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: #d1d5db;
+  }
+}

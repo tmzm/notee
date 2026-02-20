@@ -13,7 +13,6 @@ import {
   createOpenAIToolsAgent,
   AgentExecutor,
 } from "@langchain/classic/agents";
-import path from "path";
 import { TavilySearch } from "@langchain/tavily";
 
 const getRedisConfig = () => {
@@ -68,32 +67,15 @@ const chatPrompt = ChatPromptTemplate.fromMessages([
     `,
   ],
   new MessagesPlaceholder("history"),
+  [
+    "system",
+    `This is a chatbot named {chatName}.
+     User information: name {userInfo.name} email: {userInfo.email}.
+    `,
+  ],
   ["human", "{input}"],
   new MessagesPlaceholder("agent_scratchpad"),
 ]);
-
-function normalizeSourceUrl(url: string): string | null {
-  // already correct
-  if (url.startsWith("/uploads")) {
-    return url;
-  }
-
-  // full URL containing /uploads
-  if (url.startsWith("http")) {
-    try {
-      const parsed = new URL(url);
-      const uploadsIndex = parsed.pathname.indexOf("/uploads");
-
-      if (uploadsIndex !== -1) {
-        return parsed.pathname.slice(uploadsIndex);
-      }
-    } catch {
-      return null;
-    }
-  }
-
-  return null;
-}
 
 export async function createRetrievalTool(chatId: number, sources: any[]) {
   const client = createClient(getRedisConfig());
@@ -112,23 +94,59 @@ export async function createRetrievalTool(chatId: number, sources: any[]) {
     indexName: `chatSources:${chatId}`,
   });
 
-  // 1. Check if we actually need to add documents
-  // Use a simple flag or check if the index is empty to avoid redundant processing
+  // 1. Sync Redis index with current sources (handle adding/removing sources)
+  // We'll keep a list of source URLs associated with each chatId in Redis.
+  // If sources have changed (added or removed), we clear the vector index and reload.
+  const sourcesKey = `chatSources:${chatId}:urls`;
+
+  // Fetch URLs already processed (if any)
+  let storedSourceUrls: string[] = [];
+  const urlsString = await client.get(sourcesKey).catch(() => null);
+  if (urlsString) {
+    try {
+      storedSourceUrls = JSON.parse(urlsString);
+    } catch (e) {
+      storedSourceUrls = [];
+    }
+  }
+  // Current source urls as array
+  const currentSourceUrls = sources
+    .filter((s) => s.url)
+    .map((s) => s.url)
+    .sort();
+  storedSourceUrls.sort();
+
+  // Check if sources have changed (added/removed)
+  const sourcesChanged =
+    storedSourceUrls.length !== currentSourceUrls.length ||
+    !storedSourceUrls.every((url, idx) => url === currentSourceUrls[idx]);
+
+  // Check if index is empty (possibly new chat)
   const existingDocs = await client.ft
     .info(`chatSources:${chatId}`)
     .catch(() => null);
 
-  if (!existingDocs || sources.length > 0) {
+  // If sources changed or index missing, clear & reload
+  if (!existingDocs || sourcesChanged) {
+    // If index exists and sources changed, clear it (delete all docs)
+    if (existingDocs && sourcesChanged) {
+      // Remove all previous vectors to avoid duplicates/stale docs
+      await client.del(`vectorstore:chatSources:${chatId}`);
+    }
+
     const docs = [];
     for (const source of sources) {
       if (!source.url) continue;
 
-      const normalizedUrl = normalizeSourceUrl(source.url);
-      if (!normalizedUrl) continue;
+      const response = await fetch(source.url);
+      const blob = await response.blob();
 
-      const filePath = path.join(process.cwd(), "public", normalizedUrl);
-      const loaded = await new PDFLoader(filePath).load();
-      docs.push(...loaded);
+      try {
+        const loaded = await new PDFLoader(blob).load();
+        docs.push(...loaded);
+      } catch (e) {
+        console.error("Error loading PDF", e);
+      }
     }
 
     if (docs.length > 0) {
@@ -141,6 +159,9 @@ export async function createRetrievalTool(chatId: number, sources: any[]) {
       console.log("chunks", chunks);
       await vectorStore.addDocuments(chunks);
     }
+
+    // Store the current set of source URLs in Redis for this chat
+    await client.set(sourcesKey, JSON.stringify(currentSourceUrls));
   }
 
   // 2. Return the retriever
@@ -193,13 +214,18 @@ export async function createConversationRunnable(
 
 export async function* sendMessageStream(
   chatId: number,
+  chatName: string,
+  userInfo: {
+    name: string;
+    email: string;
+  },
   input: string,
   sources: any[],
 ) {
   const runnable = await createConversationRunnable(chatId, sources);
 
   const stream = runnable.streamEvents(
-    { input },
+    { input, chatName, userInfo },
     {
       configurable: { sessionId: chatId },
       version: "v1",

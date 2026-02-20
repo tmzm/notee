@@ -9,7 +9,7 @@ import { api } from '@/lib/api'
 
 /**
  * Strapi redirects here after Google OAuth with jwt (or error) in the URL.
- * We store the token and send the user to /chats, or to /login on error.
+ * We store the token and send the user to /admin, or to /login on error.
  */
 export default function GoogleRedirectPage() {
   const router = useRouter()
@@ -23,7 +23,7 @@ export default function GoogleRedirectPage() {
     onSuccess: data => {
       setCookie(ACCESS_TOKEN_COOKIE_NAME, data.jwt)
       toast.success('Signed in with Google.')
-      router.push('/chats')
+      router.push('/admin')
     },
     onError: error => {
       toast.error('Failed to sign in with Google.')

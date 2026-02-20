@@ -24,7 +24,7 @@ export default function LandingPage() {
               Features
             </Link>
             <Button asChild size="sm">
-              <Link href="/chats">Try</Link>
+              <Link href="/admin">Try</Link>
             </Button>
           </nav>
         </div>
@@ -41,7 +41,7 @@ export default function LandingPage() {
             with a single intelligent assistant that understands you.
           </p>
           <Button asChild size="lg">
-            <Link href="/chats">Try Notee</Link>
+            <Link href="/admin">Try Notee</Link>
           </Button>
         </div>
       </section>
