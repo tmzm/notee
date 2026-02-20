@@ -63,8 +63,9 @@ export async function api<T = any>(
     const status = err?.response?.status
 
     if (
-      status === 401 ||
-      (status == 403 && !options.skipAuthRedirect && !options._retry)
+      (status === 401 || status == 403) &&
+      !options.skipAuthRedirect &&
+      !options._retry
     ) {
       if (!refreshToken) redirectToLogin()
 
